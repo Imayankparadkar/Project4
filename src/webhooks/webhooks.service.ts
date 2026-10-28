@@ -247,4 +247,65 @@ export class WebhooksService {
 
     return sanitized;
   }
+
+  /**
+   * Retry processing of failed webhook events.
+   *
+   * SAFETY: This is safe to call repeatedly because:
+   * 1. Payment status updates use optimistic concurrency (WHERE status = ?)
+   * 2. PAID is a terminal state — once paid, it stays paid
+   * 3. Fee settlement is checked before execution (feeSettled flag)
+   *
+   * This means retrying a failed event will never cause:
+   * - Duplicate fee settlements (checked before settling)
+   * - Status regression (PAID → FAILED is blocked by state machine)
+   * - Duplicate processing (event stays as FAILED until successfully processed)
+   */
+  async retryFailedEvents(limit = 10): Promise<{ retried: number; succeeded: number }> {
+    const failedEvents = await this.prisma.webhookEvent.findMany({
+      where: { processingStatus: 'FAILED' },
+      orderBy: { receivedAt: 'asc' },
+      take: limit,
+    });
+
+    let succeeded = 0;
+
+    for (const event of failedEvents) {
+      try {
+        const payload = event.rawPayload as unknown as CashfreeWebhookPayload;
+        if (!payload?.type || !payload?.data?.order?.order_id) {
+          // Malformed payload — mark as SKIPPED, can't be retried
+          await this.prisma.webhookEvent.update({
+            where: { id: event.id },
+            data: {
+              processingStatus: 'SKIPPED',
+              processingError: 'Malformed payload — cannot retry',
+            },
+          });
+          continue;
+        }
+
+        await this.processEvent(payload, event.id);
+
+        await this.prisma.webhookEvent.update({
+          where: { id: event.id },
+          data: {
+            processingStatus: 'PROCESSED',
+            processedAt: new Date(),
+            processingError: null,
+          },
+        });
+
+        succeeded++;
+        this.logger.log(`Retry succeeded for webhook event ${event.id}`);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown retry error';
+        this.logger.error(`Retry failed for webhook event ${event.id}: ${errorMessage}`);
+        // Leave status as FAILED — will be retried next time
+      }
+    }
+
+    return { retried: failedEvents.length, succeeded };
+  }
 }

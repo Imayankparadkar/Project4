@@ -26,8 +26,6 @@ class EnvironmentVariables {
   @IsUrl({ require_tld: false })
   CASHFREE_BASE_URL!: string;
 
-  @IsString()
-  CASHFREE_WEBHOOK_SECRET!: string;
 
   @IsNumber()
   PORT!: number;

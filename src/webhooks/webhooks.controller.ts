@@ -94,4 +94,35 @@ export class WebhooksController {
 
     return { status: 'ok' };
   }
+
+  /**
+   * Retry processing of failed webhook events.
+   *
+   * This endpoint allows manual or automated reconciliation of webhook events
+   * that failed during initial processing. Safe to call repeatedly due to:
+   * - Optimistic concurrency on payment status updates
+   * - PAID is a terminal state (never overwritten)
+   * - Fee settlement is idempotent (checked before executing)
+   */
+  @Post('retry')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Retry failed webhook events',
+    description:
+      'Retries processing of webhook events that previously failed. ' +
+      'Safe to call repeatedly — idempotent payment processing prevents duplicates.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Retry results',
+    schema: {
+      properties: {
+        retried: { type: 'number', example: 3 },
+        succeeded: { type: 'number', example: 2 },
+      },
+    },
+  })
+  async retryFailedWebhooks(): Promise<{ retried: number; succeeded: number }> {
+    return this.webhooksService.retryFailedEvents();
+  }
 }

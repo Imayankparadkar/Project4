@@ -11,7 +11,6 @@ describe('CashfreeService', () => {
     CASHFREE_CLIENT_ID: 'test_client_id',
     CASHFREE_CLIENT_SECRET: 'test_client_secret',
     CASHFREE_API_VERSION: '2025-01-01',
-    CASHFREE_WEBHOOK_SECRET: 'test_webhook_secret',
   };
 
   beforeEach(async () => {
@@ -36,7 +35,7 @@ describe('CashfreeService', () => {
     it('should verify a valid webhook signature', () => {
       const rawBody = '{"type":"PAYMENT_SUCCESS_WEBHOOK","data":{}}';
       const timestamp = '1705302300000';
-      const secret = 'test_webhook_secret';
+      const secret = 'test_client_secret';
 
       // Compute expected signature
       const signatureData = timestamp + rawBody;
@@ -61,7 +60,7 @@ describe('CashfreeService', () => {
       const originalBody = '{"type":"PAYMENT_SUCCESS_WEBHOOK","data":{}}';
       const tamperedBody = '{"type":"PAYMENT_SUCCESS_WEBHOOK","data":{"hacked":true}}';
       const timestamp = '1705302300000';
-      const secret = 'test_webhook_secret';
+      const secret = 'test_client_secret';
 
       // Compute signature for original body
       const signatureData = timestamp + originalBody;
@@ -79,7 +78,7 @@ describe('CashfreeService', () => {
       const rawBody = '{"type":"PAYMENT_SUCCESS_WEBHOOK","data":{}}';
       const originalTimestamp = '1705302300000';
       const modifiedTimestamp = '9999999999999';
-      const secret = 'test_webhook_secret';
+      const secret = 'test_client_secret';
 
       // Compute signature for original timestamp
       const signatureData = originalTimestamp + rawBody;

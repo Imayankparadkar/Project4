@@ -65,7 +65,7 @@ A production-minded backend payment module built with NestJS, TypeScript, Prisma
 |---|---|
 | **NestJS 10.x** | Framework (modules, DI, guards, pipes) |
 | **TypeScript 5.x** | Type safety |
-| **Prisma 6.x** | ORM with type-safe queries and migrations |
+| **Prisma 5.x** | ORM with type-safe queries and migrations |
 | **PostgreSQL** | Database (via Supabase with PgBouncer pooling) |
 | **Cashfree PG API** | Payment gateway (API version `2025-01-01`) |
 | **class-validator** | Request DTO validation |
@@ -203,7 +203,9 @@ All endpoints except `/health` and `/webhooks/cashfree` require the `Authorizati
 Authorization: Bearer STU-001
 ```
 
-The value after `Bearer` is used as the `studentId`. In production, replace `DevAuthGuard` with a real JWT/OAuth guard.
+The value after `Bearer` is used as the `studentId`.
+
+> ⚠️ **Production Note:** `DevAuthGuard` is a development-only placeholder. In production, replace it with a real JWT/OAuth2 authentication guard connected to the university's identity provider.
 
 ### Endpoints
 

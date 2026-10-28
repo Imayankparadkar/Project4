@@ -24,11 +24,13 @@ export class CashfreeService {
   private readonly logger = new Logger(CashfreeService.name);
   private readonly httpClient: AxiosInstance;
   private readonly apiVersion: string;
+  private readonly clientSecret: string;
 
   constructor(private readonly configService: ConfigService) {
     const baseUrl = this.configService.get<string>('CASHFREE_BASE_URL')!;
     const clientId = this.configService.get<string>('CASHFREE_CLIENT_ID')!;
     const clientSecret = this.configService.get<string>('CASHFREE_CLIENT_SECRET')!;
+    this.clientSecret = clientSecret;
     this.apiVersion = this.configService.get<string>('CASHFREE_API_VERSION', '2025-01-01');
 
     this.httpClient = axios.create({
@@ -107,9 +109,10 @@ export class CashfreeService {
   /**
    * Verify webhook signature using HMAC-SHA256.
    *
-   * Cashfree webhook signature verification:
+   * Per Cashfree documentation, webhook signatures are verified using
+   * the Client Secret (same as CASHFREE_CLIENT_SECRET):
    * 1. Concatenate timestamp + rawBody
-   * 2. Compute HMAC-SHA256 with the webhook secret
+   * 2. Compute HMAC-SHA256 with the client secret
    * 3. Base64 encode the result
    * 4. Compare with the x-webhook-signature header
    *
@@ -121,11 +124,10 @@ export class CashfreeService {
     receivedSignature: string,
   ): boolean {
     const crypto = require('crypto');
-    const webhookSecret = this.configService.get<string>('CASHFREE_WEBHOOK_SECRET')!;
 
     const signatureData = timestamp + rawBody;
     const computedSignature = crypto
-      .createHmac('sha256', webhookSecret)
+      .createHmac('sha256', this.clientSecret)
       .update(signatureData)
       .digest('base64');
 
